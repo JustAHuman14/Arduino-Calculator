@@ -1,4 +1,4 @@
-# A Simple Calculator made using Arduin
+# A Simple Calculator made using Arduino
 
 ### Things Required:
 Figure out urself :)
