@@ -1,13 +1,16 @@
 # A Simple Calculator made using Arduino
 
 ### Things Required:
-Figure out urself :)
+1. Arduino Uno/Nano
+2. 4*4 Matrix Keypad
+3. 16*2 LCD with I2C Module
 
-Library used: LiquidCrystal_I2C by Frank de Brabander
+### Libraries used: 
+1. [LiquidCrystal_I2C](https://github.com/johnrickman/LiquidCrystal_I2C) by Frank de Brabander
+2. [Keypad](https://github.com/Chris--A/Keypad) by Mark Stanley
 
 ### Things It Can Do:
 Addition, Subtraction, Multiplication and Division.
-
 
 ### Things It Can't Do: 
 1. BODMAS.
