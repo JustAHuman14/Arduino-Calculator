@@ -1,5 +1,7 @@
+#include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
+#include <BigNumber.h>
 
 const byte rows = 4;
 const byte cols = 4;
@@ -20,20 +22,21 @@ void setup()
 {
   lcd.init();
   lcd.backlight();
+  BigNumber::begin(15);
+  Serial.begin(9600);
 }
 
-String currentNum = "";
-String totalNum = "";
-float num1 = 0;
-float num2 = 0;
-float result = 0;
+String currentNum;
+BigNumber num1;
+String totalDigitsOnScreen;
+BigNumber num2;
+BigNumber result;
 bool hasNum1 = false;
 char currentOp;
 bool calculationComplete = false;
 
 void calculate()
 {
-  
   if (currentOp == '+')
     num1 += num2;
 
@@ -55,18 +58,26 @@ void calculate()
   currentNum = "";
 }
 
+int getFreeRam()
+{
+  extern int __heap_start, *__brkval;
+  int v;
+  return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
+}
+
 void loop()
 {
-  if(totalNum.length() == 16) lcd.setCursor(0,1);
+  Serial.print("Ram used: ");
+  Serial.println(getFreeRam());
   char key = keypad.getKey();
 
   if (key)
   {
     if (key == 'C')
     {
-      totalNum = "";
       lcd.clear();
       currentNum = "";
+      totalDigitsOnScreen = "";
       num1 = 0;
       num2 = 0;
       result = 0;
@@ -78,18 +89,22 @@ void loop()
     {
       if (calculationComplete)
       {
-        totalNum = "";
         lcd.clear();
         currentNum = "";
+        totalDigitsOnScreen = "";
         num1 = 0;
         num2 = 0;
         result = 0;
       }
 
       calculationComplete = false;
-      currentNum += String(key);
-      totalNum += String(key);
-      lcd.print(key);
+
+      if (totalDigitsOnScreen.length() != 16)
+      {
+        totalDigitsOnScreen += String(key);
+        currentNum += String(key);
+        lcd.print(key);
+      }
     }
     else
     {
@@ -99,9 +114,9 @@ void loop()
         {
           if (!hasNum1)
           {
-            num1 = currentNum.toFloat();
+            num1 = BigNumber(currentNum.c_str());
             currentOp = key;
-            totalNum += String(key);
+            totalDigitsOnScreen += String(key);
             lcd.print(currentOp);
             currentNum = "";
             hasNum1 = true;
@@ -110,51 +125,72 @@ void loop()
             {
               calculate();
               result = num1;
-              totalNum = "";
+              char *rawNum1 = result.toString();
+              String Num1 = String(rawNum1);
+              free(rawNum1);
               lcd.clear();
-              
+
               if (currentOp == '/')
               {
-                lcd.print("= ");
-                lcd.print(result);
+                if (Num1.indexOf('.') != -1)
+                {
+                  while (Num1.endsWith("0"))
+                    Num1.remove(Num1.length() - 1);
+
+                  if (Num1.endsWith("."))
+                    Num1.remove(Num1.length() - 1);
+
+                  if (Num1.length() >= 16)
+                    lcd.print(Num1.substring(0, 16));
+                  else
+                    lcd.print(Num1);
+                }
               }
               else
-              {
-                lcd.print("= ");
-                lcd.print(result, 0);
-              }
-              
+                lcd.print(Num1.substring(0, Num1.indexOf(".")));
+
               hasNum1 = false;
               calculationComplete = true;
             }
           }
           else
           {
-            num2 = currentNum.toFloat();
+            num2 = BigNumber(currentNum.c_str());
             calculate();
 
             if (key != '=')
             {
               currentOp = key;
-              totalNum+=String(key);
+              totalDigitsOnScreen += String(key);
               lcd.print(currentOp);
             }
             else
             {
-              totalNum = "";
+              totalDigitsOnScreen = "";
               lcd.clear();
-              
+              lcd.noCursor();
+              char *rawNum1 = num1.toString();
+              String Num1 = String(rawNum1);
+              free(rawNum1);
+
               if (currentOp == '/')
               {
-                lcd.print("= ");
-                lcd.print(result);
+                if (Num1.indexOf('.') != -1)
+                {
+                  while (Num1.endsWith("0"))
+                    Num1.remove(Num1.length() - 1);
+
+                  if (Num1.endsWith("."))
+                    Num1.remove(Num1.length() - 1);
+                  if (Num1.length() >= 16)
+                    lcd.print(Num1.substring(0, 16));
+                  else
+                    lcd.print(Num1);
+                }
               }
               else
-              {
-                lcd.print("= ");
-                lcd.print(result, 0);
-              }
-              
+                lcd.print(Num1.substring(0, Num1.indexOf(".")));
+
               hasNum1 = false;
               calculationComplete = true;
             }
